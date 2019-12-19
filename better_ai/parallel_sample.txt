@@ -1,0 +1,40 @@
+﻿import os, signal
+import time
+from multiprocessing import Process, Value
+time_limit = 5
+
+def best_strategy(player, board, best_move, still_running):
+	while(still_running.value > 0 and best_move.value<1000):
+		time.sleep(1)
+		best_move.value += 100
+	
+def get_move():
+	best_move = Value("i",0)
+	running = Value("i",1)
+	p = Process(target=best_strategy, args=("", "",  best_move, running)) # create a sub process
+	p.start()	# start it
+	t1 = time.time()
+	print("starting %i" % p.pid)
+	p.join(time_limit)		# give the process time to run, and rejoin (works if it's done)
+	if p.is_alive():
+		print("Not finished within time limit")
+		time.sleep(3)		# let it run a little longer
+		running.value = 0	# tell it we're about to stop
+		time.sleep(0.1)		# wait a bit
+		p.terminate()		# terminate
+		time.sleep(0.1)		# wait a bit
+
+	if p.is_alive(): 
+		print("STILL ALIVE: Force Kill")
+		os.kill(p.pid, signal.SIGKILL)	# make the OS destroy it
+	t2 = time.time()
+	
+	move = best_move.value	# get the final best move
+
+	print("Ended  %i" % p.pid)
+	print("Elapsed time: %3.5f" % (t2 - t1))
+	print("Best move (i.e. number of seconds running*100 = )", best_move.value)
+	
+if __name__=="__main__":
+	get_move()
+	
